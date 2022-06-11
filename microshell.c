@@ -102,7 +102,42 @@ int next_token(char **arg, char *token)
 
 int pipex(char **arg, char **envp, int infile)
 {
-    
+    int fd[2];
+    int pid;
+
+    if (pipe(fd) == -1)
+        exit(put_error(ERR_FATAL, NULL));
+    else if ((pid = fork()) == -1)
+        exit(put_error(ERR_FATAL, NULL));
+    if (!pid)
+    {
+        dup2(infile, STDIN_FILENO);
+        dup2(fd[1], 1);
+        close(infile);
+        close(fd[1]);
+        close(fd[0]);
+        if (execve(arg[0], arg, envp) == -1)
+            exit(put_error(ERR_CMD, arg[0]));
+    }
+    close(infile);
+    close(fd[1]);
+    return (fd[0]);
+}
+
+void    exec_last(char **arg, char **envp, int infile)
+{
+    int pid;
+
+    if ((pid = fork()) == -1)
+        exit(put_error(ERR_FATAL, NULL));
+    if (!pid)
+    {
+        dup2(infile, STDIN_FILENO);
+        close(infile);
+        if (execve(arg[0], arg, envp) == -1)
+            exit(put_error(ERR_CMD, arg[0]));
+    }
+    close(infile);
 }
 
 void    exec_cmd(char **arg, char **envp)
@@ -112,7 +147,7 @@ void    exec_cmd(char **arg, char **envp)
     char **cmd;
 
     i = 0;
-    fd_in = STDIN_FILENO;
+    fd_in = 0;
     while (arg[i])
     {
         cmd = get_word(&arg[i], "|");
@@ -129,6 +164,8 @@ void    exec_cmd(char **arg, char **envp)
             exec_last(cmd, envp, fd_in);
         ft_free_strs(cmd);
     }
+    while (waitpid(-1, NULL ,0) > 0)
+        ;
 }
 
 int main(int ac, char **av, char **envp)
@@ -143,6 +180,5 @@ int main(int ac, char **av, char **envp)
         i += next_token(&av[i], ";");
         ft_free_strs(pipeline);
     }
-    // system("leaks a.out");
     return 0;
 }

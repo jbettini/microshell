@@ -10,14 +10,6 @@
 # define ERR_FATAL "error: fatal\n"
 # define ERR_CMD "error: cannot execute "
 
-void    put_strs(char **arg)
-{
-    int i = 0;
-
-    while (arg[i])
-        printf("%s\n", arg[i++]);
-}
-
 int ft_strlen(char *str)
 {
     int i;
@@ -138,6 +130,8 @@ void    exec_last(char **arg, char **envp, int infile)
             exit(put_error(ERR_CMD, arg[0]));
     }
     close(infile);
+    while (waitpid(-1, NULL ,0) > 0)
+        ;
 }
 
 void    exec_cmd(char **arg, char **envp)
@@ -147,16 +141,10 @@ void    exec_cmd(char **arg, char **envp)
     char **cmd;
 
     i = 0;
-    fd_in = 0;
+    fd_in = dup(0);
     while (arg[i])
     {
         cmd = get_word(&arg[i], "|");
-        if (!strcmp(cmd[0], "cd"))
-        {
-            ft_cd(cmd);
-            ft_free_strs(cmd);
-            return ;
-        }
         i += next_token(&arg[i], "|");
         if (arg[i])
             fd_in = pipex(cmd, envp, fd_in);
@@ -164,8 +152,6 @@ void    exec_cmd(char **arg, char **envp)
             exec_last(cmd, envp, fd_in);
         ft_free_strs(cmd);
     }
-    while (waitpid(-1, NULL ,0) > 0)
-        ;
 }
 
 int main(int ac, char **av, char **envp)
@@ -176,9 +162,13 @@ int main(int ac, char **av, char **envp)
     while (i < ac)
     {
         pipeline = get_word(&av[i], ";");
-        exec_cmd(pipeline, envp);
+        if (!strcmp(pipeline[0], "cd"))
+            ft_cd(pipeline);
+        else
+            exec_cmd(pipeline, envp);
         i += next_token(&av[i], ";");
         ft_free_strs(pipeline);
     }
+    // system("lsof -c a.out");
     return 0;
 }

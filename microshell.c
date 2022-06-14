@@ -162,6 +162,11 @@ int main(int ac, char **av, char **envp)
     while (i < ac)
     {
         pipeline = get_word(&av[i], ";");
+        if (!pipeline[0])
+        {
+            ft_free_strs(pipeline);
+            continue ;
+        }
         if (!strcmp(pipeline[0], "cd"))
             ft_cd(pipeline);
         else
